@@ -2,6 +2,7 @@ use relm4::{adw, gtk::prelude::*, prelude::*};
 
 use crate::components::request_bar;
 use crate::components::response_preview;
+use crate::utils::network::send_request;
 
 pub struct AppModel {
     request_bar_widget: Controller<request_bar::Model>,
@@ -11,8 +12,11 @@ pub struct AppModel {
 
 #[derive(Debug)]
 pub enum AppMsg {
-    ReceiveRequest(request_bar::Model),
+    SendRequest(request_bar::Model),
+    UpdateResponse(String),
 }
+
+const DEFAULT_URL: &str = "https://rickandmortyapi.com/api";
 
 #[relm4::component(pub)]
 impl SimpleComponent for AppModel {
@@ -37,21 +41,9 @@ impl SimpleComponent for AppModel {
                     set_vexpand:  true,
 
                     // Request bar
-                    gtk::Box {
-                        append = model.request_bar_widget.widget(),
-                    },
-
+                    append = model.request_bar_widget.widget(),
                     // Response preview
-                    gtk::ScrolledWindow {
-                        set_vexpand: true,
-                        set_hscrollbar_policy: gtk::PolicyType::Never,
-                        set_vscrollbar_policy: gtk::PolicyType::Automatic,
-
-                        gtk::Box {
-                            append = model.response_preview_widget.widget(),
-                        }
-
-                    }
+                    append = model.response_preview_widget.widget(),
                 }
             }
         }
@@ -64,12 +56,12 @@ impl SimpleComponent for AppModel {
     ) -> relm4::ComponentParts<Self> {
         let req = request_bar::Model::builder()
             .launch(request_bar::Model {
-                url: "https://www.google.com".to_string(),
+                url: DEFAULT_URL.to_string(),
                 method: "GET".to_string(),
             })
             .forward(sender.input_sender(), |req_output| match req_output {
                 // get request from request bar
-                request_bar::Output::Send(req) => AppMsg::ReceiveRequest(req),
+                request_bar::Output::Send(req) => AppMsg::SendRequest(req),
             });
 
         let res = response_preview::Model::builder()
@@ -87,15 +79,34 @@ impl SimpleComponent for AppModel {
         ComponentParts { model, widgets }
     }
 
-    fn update(&mut self, message: Self::Input, _sender: relm4::ComponentSender<Self>) {
+    fn update(&mut self, message: Self::Input, sender: relm4::ComponentSender<Self>) {
         match message {
-            AppMsg::ReceiveRequest(req) => {
-                self.response_preview = req.url;
+            AppMsg::SendRequest(req) => {
+                // Show loading state
+                sender.input(AppMsg::UpdateResponse(String::from("Loading...")));
 
-                let child_sender = self.response_preview_widget.sender();
-                let _ = child_sender.send(response_preview::Msg::Update(
-                    self.response_preview.to_string(),
-                ));
+                // Send request
+                sender
+                    .clone()
+                    .command(move |_sender, _shutdown| async move {
+                        match send_request(req.url, req.method).await {
+                            Ok(response) => {
+                                let _ = sender.input(AppMsg::UpdateResponse(response));
+                            }
+                            Err(error) => {
+                                let _ = sender.input(AppMsg::UpdateResponse(error));
+                            }
+                        };
+                    });
+            }
+            AppMsg::UpdateResponse(response) => {
+                self.response_preview = response;
+                let _ = self
+                    .response_preview_widget
+                    .sender()
+                    .send(response_preview::Msg::Update(
+                        self.response_preview.to_string(),
+                    ));
             }
         }
     }
