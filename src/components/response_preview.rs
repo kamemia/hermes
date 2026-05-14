@@ -1,8 +1,9 @@
 use relm4::{gtk, gtk::prelude::*, prelude::*};
+use sourceview5::prelude::*;
 
 pub struct Model {
     response: String,
-    text_buffer: gtk::TextBuffer,
+    source_buffer: sourceview5::Buffer,
 }
 
 #[derive(Debug)]
@@ -24,20 +25,9 @@ impl SimpleComponent for Model {
             set_vscrollbar_policy: gtk::PolicyType::Automatic,
 
             #[name="text_view"]
-            gtk::TextView {
-                set_buffer: Some(&model.text_buffer),
-
-                //misc
+            sourceview5::View {
+                set_buffer: Some(&model.source_buffer),
                 set_editable: false,
-                set_cursor_visible: true,
-                set_wrap_mode: gtk::WrapMode::Word,
-                set_monospace: true,
-                set_margin_all: 5,
-
-                set_pixels_above_lines: 5,
-                set_pixels_below_lines: 5,
-                set_pixels_inside_wrap: 5,
-
             },
         }
     }
@@ -49,7 +39,7 @@ impl SimpleComponent for Model {
     ) -> relm4::ComponentParts<Self> {
         let model = Model {
             response,
-            text_buffer: gtk::TextBuffer::new(None),
+            source_buffer: init_source_buffer(),
         };
         let widgets = view_output!();
 
@@ -60,8 +50,21 @@ impl SimpleComponent for Model {
         match message {
             Msg::Update(response) => {
                 self.response = response;
-                self.text_buffer.set_text(&self.response);
+                self.source_buffer.set_text(&self.response);
             }
         }
     }
+}
+
+fn init_source_buffer() -> sourceview5::Buffer {
+    let buffer = sourceview5::Buffer::new(None);
+    let lang_manager = sourceview5::LanguageManager::default();
+    if let Some(rust_lang) = lang_manager.language("json") {
+        buffer.set_language(Some(&rust_lang));
+    }
+    let scheme_manager = sourceview5::StyleSchemeManager::default();
+    if let Some(theme_scheme) = scheme_manager.scheme("Adwaita-dark") {
+        buffer.set_style_scheme(Some(&theme_scheme));
+    }
+    buffer
 }
