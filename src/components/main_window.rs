@@ -39,6 +39,8 @@ impl SimpleComponent for AppModel {
                 gtk::Box {
                     set_orientation: gtk::Orientation::Vertical,
                     set_vexpand:  true,
+                    set_spacing: 5,
+                    set_margin_all: 5,
 
                     // Request bar
                     append = model.request_bar_widget.widget(),

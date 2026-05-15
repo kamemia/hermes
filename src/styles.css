@@ -1,0 +1,29 @@
+:root {
+  --accent-bg-color: #d3d3ff;
+  --accent-fg-color: #000000;
+
+  --border-color: #77777755;
+}
+
+.response-bar {
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+}
+
+.method-dropdown button {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+  border-right: solid 1px var(--border-color);
+}
+
+.send-button {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  border-left: solid 1px var(--border-color);
+}
+
+.source-view {
+  border: solid 1px var(--border-color);
+  border-radius: 10px;
+  padding: 5px 0;
+}

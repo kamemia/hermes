@@ -28,6 +28,11 @@ impl SimpleComponent for Model {
             sourceview5::View {
                 set_buffer: Some(&model.source_buffer),
                 set_editable: false,
+                set_show_line_numbers: true,
+                set_highlight_current_line : true,
+                set_pixels_above_lines: 2,
+                set_pixels_below_lines: 2,
+                add_css_class: "source-view",
             },
         }
     }

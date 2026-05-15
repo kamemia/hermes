@@ -1,5 +1,7 @@
 use relm4::{gtk, gtk::prelude::*, prelude::*};
 
+use crate::constants::METHODS;
+
 #[derive(Debug, Clone)]
 pub struct Model {
     pub url: String,
@@ -27,8 +29,21 @@ impl SimpleComponent for Model {
     view! {
         gtk::Box {
             set_orientation: gtk::Orientation::Horizontal,
-            set_spacing: 5,
-            set_margin_all: 5,
+            add_css_class : "response-bar",
+
+            gtk::DropDown {
+                add_css_class: "method-dropdown",
+                set_model: Some(gtk::StringList::new(METHODS).upcast_ref::<gtk::gio::ListModel>()),
+                // Compute index from static slice
+                #[watch]
+                set_selected: METHODS.iter().position(|&method| method == &model.method).unwrap() as u32,
+
+                // Update method from dropdown
+                connect_selected_notify[sender] => move |dropdown| {
+                    let index = dropdown.selected() as usize;
+                    sender.input(Msg::MethodChanged(METHODS[index].to_string()));
+                },
+            },
 
             gtk::Entry {
                 set_placeholder_text: Some("Enter URL ..."),
@@ -38,11 +53,13 @@ impl SimpleComponent for Model {
                     let text = entry.text().to_string();
                     sender.input(Msg::UrlChanged(text));
                 },
+                inline_css: "border-radius: 0px"
             },
 
             gtk::Button {
                 set_label: "Send",
                 connect_clicked => Msg::Send,
+                add_css_class: "send-button",
             }
 
         }
