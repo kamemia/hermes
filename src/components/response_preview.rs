@@ -1,6 +1,7 @@
 use relm4::{gtk, gtk::prelude::*, prelude::*};
 use sourceview5::prelude::*;
 
+#[derive(Debug)]
 pub struct Model {
     response: String,
     source_buffer: sourceview5::Buffer,

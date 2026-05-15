@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 gobject-sys = "0.22.6"
+adw = { package = "libadwaita", version = "0.9.1", features = ["v1_4", "v1_9"] }
 relm4 = { version = "0.11.0", features = ["macros", "libadwaita"] }
 relm4-components = "0.11.0"
 reqwest = { version = "0.13.3", features = ["json"] }

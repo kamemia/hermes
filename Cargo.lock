@@ -669,6 +669,7 @@ name = "hermes"
 version = "0.1.0"
 dependencies = [
  "gobject-sys",
+ "libadwaita",
  "relm4",
  "relm4-components",
  "reqwest",
