@@ -1,15 +1,17 @@
 use adw::prelude::*;
 use relm4::prelude::*;
 
-use crate::components::request_bar;
-use crate::components::request_body;
-use crate::components::response_preview;
-use crate::request::RequestState;
-use crate::utils::network::send_request;
+use crate::{
+    components::{request_bar, request_body, request_headers, request_params, response_preview},
+    request::RequestState,
+    utils::network::send_request,
+};
 
 #[derive(Debug)]
 pub struct Model {
     request_bar_widget: Controller<request_bar::Model>,
+    request_headers_widget: Controller<request_headers::Model>,
+    request_params_widget: Controller<request_params::Model>,
     request_body_widget: Controller<request_body::Model>,
     response_preview_widget: Controller<response_preview::Model>,
     request: RequestState,
@@ -42,7 +44,7 @@ impl SimpleComponent for Model {
             },
 
             #[wrap(Some)]
-                set_content = &gtk::Box {
+            set_content = &gtk::Box {
                 set_orientation: gtk::Orientation::Vertical,
                 set_hexpand: true,
                 set_spacing: 5,
@@ -50,25 +52,48 @@ impl SimpleComponent for Model {
                 // Request bar
                 append = model.request_bar_widget.widget(),
 
-                // Request and response
-                gtk::Box {
-                    set_orientation: gtk::Orientation::Horizontal,
-                    set_homogeneous: true,
-                    set_spacing: 5,
+                #[name="breakpoint_bin"]
+                adw::BreakpointBin {
+                    set_width_request: 300,
+                    set_height_request: 300,
+                    // Request and response
+                    #[wrap(Some)]
+                    #[name="request_and_response"]
+                    set_child = &gtk::Box {
+                        set_orientation: gtk::Orientation::Horizontal,
+                        set_homogeneous: true,
+                        set_spacing: 5,
 
-                    gtk::Box {
-                        set_orientation: gtk::Orientation::Vertical,
-                        set_hexpand: true,
-                        // Response preview
-                        append = model.request_body_widget.widget(),
+                        gtk::Box {
+                            set_orientation: gtk::Orientation::Vertical,
+                            set_hexpand: true,
+                            set_spacing: 5,
+
+                            adw::InlineViewSwitcher {
+                                set_stack: Some(&request_stack),
+                            },
+
+                            #[name="request_stack"]
+                            adw::ViewStack {
+                                set_vexpand: true,
+                            }
+                        },
+
+                        gtk::Box {
+                            set_orientation: gtk::Orientation::Vertical,
+                            set_hexpand: true,
+                            set_spacing: 5,
+
+                            adw::InlineViewSwitcher {
+                                set_stack: Some(&response_stack),
+                            },
+
+                            #[name="response_stack"]
+                            adw::ViewStack {
+                                set_vexpand: true,
+                            },
+                        }
                     },
-
-                    gtk::Box {
-                        set_orientation: gtk::Orientation::Vertical,
-                        set_hexpand: true,
-                        // Request body
-                        append = model.response_preview_widget.widget(),
-                    }
                 }
             }
         }
@@ -107,15 +132,64 @@ impl SimpleComponent for Model {
             .launch(String::from("Response preview section"))
             .detach();
 
+        // Initialise Main Content Model
         let model = Model {
             request_bar_widget: req,
             request_body_widget: req_body,
+            request_headers_widget: request_headers::Model::builder()
+                .launch(Vec::new())
+                .detach(),
+            request_params_widget: request_params::Model::builder().launch(()).detach(),
             response_preview_widget: res,
-            response_preview: String::from("Response preview section"),
+            response_preview: String::new(),
             request,
         };
 
         let widgets = view_output!();
+
+        // Add Header and Body tabs
+        widgets.request_stack.add_titled(
+            model.request_headers_widget.widget(),
+            Some("Headers"),
+            "Headers",
+        );
+        widgets
+            .request_stack
+            .add_titled(model.request_body_widget.widget(), Some("Body"), "Body");
+
+        widgets.request_stack.add_titled(
+            model.request_params_widget.widget(),
+            Some("Params"),
+            "Params",
+        );
+
+        // Add Response preview tabs
+        widgets.response_stack.add_titled(
+            model.response_preview_widget.widget(),
+            Some("Preview"),
+            "Preview",
+        );
+
+        let res_headers = &gtk::Box::new(gtk::Orientation::Vertical, 0);
+        res_headers.append(&gtk::Label::new(Some("Response headers")));
+        res_headers.set_vexpand(true);
+        res_headers.set_valign(gtk::Align::Center);
+        widgets
+            .response_stack
+            .add_titled(res_headers, Some("Headers"), "Headers");
+
+        // Add layout breakpoint
+        let breakpoint = adw::Breakpoint::new(adw::BreakpointCondition::new_length(
+            adw::BreakpointConditionLengthType::MaxWidth,
+            750.0,
+            adw::LengthUnit::Px,
+        ));
+        breakpoint.add_setter(
+            &widgets.request_and_response,
+            "orientation",
+            Some(&gtk::Orientation::Vertical.to_value()),
+        );
+        widgets.breakpoint_bin.add_breakpoint(breakpoint);
 
         ComponentParts { model, widgets }
     }

@@ -43,6 +43,7 @@ impl SimpleComponent for Model {
                 set_highlight_current_line : true,
                 set_pixels_above_lines: 2,
                 set_pixels_below_lines: 2,
+                set_tab_width: 4,
                 set_monospace: true,
                 add_css_class: "source-view",
             }
