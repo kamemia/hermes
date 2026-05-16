@@ -3,8 +3,8 @@ use relm4::prelude::*;
 
 use crate::{
     components::{request_bar, request_body, request_headers, request_params, response_preview},
-    request::RequestState,
-    utils::network::send_request,
+    request::{RequestState, ResponseState},
+    utils::network::{format_json, send_request},
 };
 
 #[derive(Debug)]
@@ -15,6 +15,7 @@ pub struct Model {
     request_body_widget: Controller<request_body::Model>,
     response_preview_widget: Controller<response_preview::Model>,
     request: RequestState,
+    response: Option<ResponseState>,
     response_preview: String,
 }
 
@@ -24,7 +25,8 @@ pub enum Msg {
     UpdateRequest(RequestState),
     UpdateRequestFromBar(request_bar::Model),
     UpdateRequestBody(String),
-    UpdateResponse(String),
+    UpdateResponsePreview(String),
+    UpdateResponse(Option<ResponseState>),
 }
 
 #[relm4::component(pub)]
@@ -38,8 +40,6 @@ impl SimpleComponent for Model {
             add_top_bar = &adw::HeaderBar{
                 set_css_classes: &["flat"],
                 set_hexpand: true,
-                set_show_start_title_buttons: false,
-                set_show_end_title_buttons: true,
                 set_title_widget = Some(&gtk::Label::new(Some("Hermes"))),
             },
 
@@ -143,6 +143,7 @@ impl SimpleComponent for Model {
             response_preview_widget: res,
             response_preview: String::new(),
             request,
+            response: None,
         };
 
         let widgets = view_output!();
@@ -208,7 +209,7 @@ impl SimpleComponent for Model {
             }
             Msg::SendRequest => {
                 // Show loading state
-                sender.input(Msg::UpdateResponse(String::from("Loading...")));
+                sender.input(Msg::UpdateResponsePreview(String::from("Loading...")));
                 let req = self.request.clone();
 
                 // Send request
@@ -217,22 +218,32 @@ impl SimpleComponent for Model {
                     .command(move |_sender, _shutdown| async move {
                         match send_request(req).await {
                             Ok(response) => {
-                                let _ = sender.input(Msg::UpdateResponse(response));
+                                let _ = sender.input(Msg::UpdateResponse(Some(response)));
                             }
                             Err(error) => {
-                                let _ = sender.input(Msg::UpdateResponse(error));
+                                let _ =
+                                    sender.input(Msg::UpdateResponsePreview(format_json(error)));
                             }
                         };
                     });
             }
-            Msg::UpdateResponse(response) => {
-                self.response_preview = response;
+            Msg::UpdateResponsePreview(text) => {
+                self.response_preview = text;
                 let _ = self
                     .response_preview_widget
                     .sender()
                     .send(response_preview::Msg::Update(
                         self.response_preview.to_string(),
                     ));
+            }
+            Msg::UpdateResponse(response) => {
+                self.response = response;
+                let preview = match &self.response {
+                    Some(response) => &response.body,
+                    None => &String::from("No response"),
+                };
+                let formatted_preview = format_json(preview.to_string());
+                sender.input(Msg::UpdateResponsePreview(formatted_preview));
             }
         }
     }

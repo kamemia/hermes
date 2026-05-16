@@ -46,6 +46,7 @@ impl SimpleComponent for Model {
                 },
             },
 
+            #[name="entry"]
             gtk::Entry {
                 set_placeholder_text: Some("Enter URL ..."),
                 set_text: &model.url,
@@ -53,6 +54,9 @@ impl SimpleComponent for Model {
                 connect_changed[sender] => move |entry| {
                     let text = entry.text().to_string();
                     sender.input(Msg::UrlChanged(text));
+                },
+                connect_activate[sender] => move |_entry| {
+                    let _ = sender.output(Output::Send);
                 },
                 inline_css: "border-radius: 0px"
             },
@@ -76,6 +80,27 @@ impl SimpleComponent for Model {
             method: intial_values.method,
         };
         let widgets = view_output!();
+
+        let trigger = if cfg!(target_os = "macos") {
+            "<Meta>l"
+        } else {
+            "<Control>l"
+        };
+        let shortcut = gtk::Shortcut::builder()
+            .trigger(&gtk::ShortcutTrigger::parse_string(trigger).unwrap())
+            .action(&gtk::CallbackAction::new({
+                let entry = widgets.entry.clone();
+                move |_, _| {
+                    entry.grab_focus();
+                    gtk::glib::Propagation::Stop
+                }
+            }))
+            .build();
+
+        let shortcut_controller = gtk::ShortcutController::new();
+        shortcut_controller.set_scope(gtk::ShortcutScope::Global);
+        shortcut_controller.add_shortcut(shortcut);
+        root.add_controller(shortcut_controller);
 
         ComponentParts { model, widgets }
     }

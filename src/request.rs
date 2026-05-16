@@ -13,8 +13,21 @@ impl Default for RequestState {
         Self {
             url: String::from("https://rickandmortyapi.com/api"),
             method: String::from("GET"),
-            headers: Vec::new(),
+            headers: vec![
+                // JSON by default
+                (
+                    String::from("Content-Type"),
+                    String::from("application/json"),
+                ),
+            ],
             body: String::new(),
         }
     }
+}
+
+#[derive(Debug, Clone)]
+pub struct ResponseState {
+    pub status_code: u16,
+    pub headers: Vec<(String, String)>,
+    pub body: String,
 }

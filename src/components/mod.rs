@@ -4,4 +4,5 @@ pub mod request_bar;
 pub mod request_body;
 pub mod request_headers;
 pub mod request_params;
+pub mod response_headers;
 pub mod response_preview;
