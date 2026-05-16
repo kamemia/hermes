@@ -23,7 +23,7 @@
 }
 
 .source-view {
-  border: solid 1px var(--border-color);
+  /* border: solid 1px var(--border-color); */
   border-radius: 10px;
-  padding: 5px 0;
+  padding: 8px 0;
 }

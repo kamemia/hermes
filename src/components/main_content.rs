@@ -2,7 +2,10 @@ use adw::prelude::*;
 use relm4::prelude::*;
 
 use crate::{
-    components::{request_bar, request_body, request_headers, request_params, response_preview},
+    components::{
+        request_bar, request_body, request_headers, request_params, response_headers,
+        response_preview,
+    },
     request::{RequestState, ResponseState},
     utils::network::{format_json, send_request},
 };
@@ -14,6 +17,7 @@ pub struct Model {
     request_params_widget: Controller<request_params::Model>,
     request_body_widget: Controller<request_body::Model>,
     response_preview_widget: Controller<response_preview::Model>,
+    response_headers_widget: Controller<response_headers::Model>,
     request: RequestState,
     response: Option<ResponseState>,
     response_preview: String,
@@ -132,6 +136,10 @@ impl SimpleComponent for Model {
             .launch(String::from("Response preview section"))
             .detach();
 
+        let res_headers = response_headers::Model::builder()
+            .launch(Vec::new())
+            .detach();
+
         // Initialise Main Content Model
         let model = Model {
             request_bar_widget: req,
@@ -140,6 +148,7 @@ impl SimpleComponent for Model {
                 .launch(Vec::new())
                 .detach(),
             request_params_widget: request_params::Model::builder().launch(()).detach(),
+            response_headers_widget: res_headers,
             response_preview_widget: res,
             response_preview: String::new(),
             request,
@@ -151,33 +160,33 @@ impl SimpleComponent for Model {
         // Add Header and Body tabs
         widgets.request_stack.add_titled(
             model.request_headers_widget.widget(),
-            Some("Headers"),
+            Some("request_headers"),
             "Headers",
         );
-        widgets
-            .request_stack
-            .add_titled(model.request_body_widget.widget(), Some("Body"), "Body");
+        widgets.request_stack.add_titled(
+            model.request_body_widget.widget(),
+            Some("request_body"),
+            "Body",
+        );
 
         widgets.request_stack.add_titled(
             model.request_params_widget.widget(),
-            Some("Params"),
+            Some("request_params"),
             "Params",
         );
 
         // Add Response preview tabs
         widgets.response_stack.add_titled(
             model.response_preview_widget.widget(),
-            Some("Preview"),
+            Some("response_preview"),
             "Preview",
         );
 
-        let res_headers = &gtk::Box::new(gtk::Orientation::Vertical, 0);
-        res_headers.append(&gtk::Label::new(Some("Response headers")));
-        res_headers.set_vexpand(true);
-        res_headers.set_valign(gtk::Align::Center);
-        widgets
-            .response_stack
-            .add_titled(res_headers, Some("Headers"), "Headers");
+        widgets.response_stack.add_titled(
+            model.response_headers_widget.widget(),
+            Some("response_headers"),
+            "Headers",
+        );
 
         // Add layout breakpoint
         let breakpoint = adw::Breakpoint::new(adw::BreakpointCondition::new_length(
@@ -238,12 +247,24 @@ impl SimpleComponent for Model {
             }
             Msg::UpdateResponse(response) => {
                 self.response = response;
+
+                // update preview
                 let preview = match &self.response {
                     Some(response) => &response.body,
                     None => &String::from("No response"),
                 };
                 let formatted_preview = format_json(preview.to_string());
                 sender.input(Msg::UpdateResponsePreview(formatted_preview));
+
+                // update headers
+                let headers = match &self.response {
+                    Some(response) => response.headers.clone(),
+                    None => Vec::new(),
+                };
+                let _ = self
+                    .response_headers_widget
+                    .sender()
+                    .send(response_headers::Msg::HeadersChanged(headers));
             }
         }
     }

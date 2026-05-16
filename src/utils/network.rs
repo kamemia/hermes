@@ -30,6 +30,7 @@ pub async fn send_request(request: RequestState) -> Result<ResponseState, String
                     .collect(),
                 body: response.text().await.unwrap(),
             };
+            println!("{:?}", response_state);
             return Ok(response_state);
         }
         Err(error) => {
