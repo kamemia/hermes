@@ -1,24 +1,32 @@
 pub const METHODS: &[&str] = &["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"];
 
 #[derive(Debug, Clone)]
+pub struct RequestHeader {
+    pub name: String,
+    pub value: String,
+    pub enabled: bool,
+}
+
+#[derive(Debug, Clone)]
 pub struct RequestState {
     pub url: String,
     pub method: String,
-    pub headers: Vec<(String, String)>,
+    pub headers: Vec<RequestHeader>,
     pub body: String,
 }
 
 impl Default for RequestState {
     fn default() -> Self {
         Self {
-            url: String::from("https://rickandmortyapi.com/api"),
+            url: String::from("https://api.nasa.gov/planetary/apod"),
             method: String::from("GET"),
             headers: vec![
                 // JSON by default
-                (
-                    String::from("Content-Type"),
-                    String::from("application/json"),
-                ),
+                RequestHeader {
+                    name: String::from("Content-Type"),
+                    value: String::from("application/json"),
+                    enabled: true,
+                },
             ],
             body: String::new(),
         }

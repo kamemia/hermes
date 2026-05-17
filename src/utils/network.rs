@@ -1,4 +1,7 @@
-use reqwest::{Client, Method};
+use reqwest::{
+    Client, Method,
+    header::{HeaderMap, HeaderName, HeaderValue},
+};
 use serde_json::json;
 
 use crate::request::{RequestState, ResponseState};
@@ -6,16 +9,25 @@ use crate::request::{RequestState, ResponseState};
 pub async fn send_request(request: RequestState) -> Result<ResponseState, String> {
     let client = Client::new();
 
-    let mut payload = client
+    let mut header_map = HeaderMap::new();
+    for header in request.headers {
+        if header.enabled {
+            if let (Ok(name), Ok(value)) = (
+                HeaderName::from_bytes(header.name.as_bytes()),
+                HeaderValue::from_str(header.value.as_str()),
+            ) {
+                header_map.insert(name, value);
+            }
+        }
+    }
+
+    let payload = client
         .request(
             Method::from_bytes(request.method.as_bytes()).unwrap(),
             request.url,
         )
+        .headers(header_map)
         .body(request.body);
-
-    for (key, value) in request.headers {
-        payload = payload.header(key, value);
-    }
 
     let response = payload.send().await;
 
@@ -30,7 +42,6 @@ pub async fn send_request(request: RequestState) -> Result<ResponseState, String
                     .collect(),
                 body: response.text().await.unwrap(),
             };
-            println!("{:?}", response_state);
             return Ok(response_state);
         }
         Err(error) => {

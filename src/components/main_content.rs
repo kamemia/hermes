@@ -6,7 +6,7 @@ use crate::{
         request_bar, request_body, request_headers, request_params, response_headers,
         response_preview,
     },
-    request::{RequestState, ResponseState},
+    request::{RequestHeader, RequestState, ResponseState},
     utils::network::{format_json, send_request},
 };
 
@@ -31,6 +31,7 @@ pub enum Msg {
     UpdateRequestBody(String),
     UpdateResponsePreview(String),
     UpdateResponse(Option<ResponseState>),
+    UpdateRequestHeaders(Vec<RequestHeader>),
 }
 
 #[relm4::component(pub)]
@@ -132,6 +133,14 @@ impl SimpleComponent for Model {
                 },
             );
 
+        let request_headers_widget = request_headers::Model::builder()
+            .launch(request.headers.clone())
+            .forward(sender.input_sender(), |output| match output {
+                request_headers::Output::EmitHeadersChanged(headers) => {
+                    Msg::UpdateRequestHeaders(headers)
+                }
+            });
+
         let res = response_preview::Model::builder()
             .launch(String::from("Response preview section"))
             .detach();
@@ -144,14 +153,12 @@ impl SimpleComponent for Model {
         let model = Model {
             request_bar_widget: req,
             request_body_widget: req_body,
-            request_headers_widget: request_headers::Model::builder()
-                .launch(Vec::new())
-                .detach(),
+            request_headers_widget,
             request_params_widget: request_params::Model::builder().launch(()).detach(),
             response_headers_widget: res_headers,
             response_preview_widget: res,
             response_preview: String::new(),
-            request,
+            request: request.clone(),
             response: None,
         };
 
@@ -212,6 +219,9 @@ impl SimpleComponent for Model {
             Msg::UpdateRequestFromBar(req_bar_model) => {
                 self.request.url = req_bar_model.url;
                 self.request.method = req_bar_model.method;
+            }
+            Msg::UpdateRequestHeaders(headers) => {
+                self.request.headers = headers.clone();
             }
             Msg::UpdateRequestBody(body) => {
                 self.request.body = body;
