@@ -1,6 +1,6 @@
 use relm4::{gtk, gtk::prelude::*, prelude::*};
 
-use crate::request::METHODS;
+use crate::{request::METHODS, utils::shortcut::register_shortcut};
 
 #[derive(Debug, Clone)]
 pub struct Model {
@@ -81,26 +81,16 @@ impl SimpleComponent for Model {
         };
         let widgets = view_output!();
 
-        let trigger = if cfg!(target_os = "macos") {
-            "<Meta>l"
-        } else {
-            "<Control>l"
-        };
-        let shortcut = gtk::Shortcut::builder()
-            .trigger(&gtk::ShortcutTrigger::parse_string(trigger).unwrap())
-            .action(&gtk::CallbackAction::new({
-                let entry = widgets.entry.clone();
-                move |_, _| {
-                    entry.grab_focus();
-                    gtk::glib::Propagation::Stop
-                }
-            }))
-            .build();
+        // Focus entry on ctrl+l
+        let entry_clone = widgets.entry.clone();
+        register_shortcut(&root, "focus_entry", "<Control>l", move || {
+            entry_clone.grab_focus();
+        });
 
-        let shortcut_controller = gtk::ShortcutController::new();
-        shortcut_controller.set_scope(gtk::ShortcutScope::Global);
-        shortcut_controller.add_shortcut(shortcut);
-        root.add_controller(shortcut_controller);
+        // Send request on ctrl+r
+        register_shortcut(&root, "send_request", "<Control>r", move || {
+            let _ = sender.output(Output::Send);
+        });
 
         ComponentParts { model, widgets }
     }
