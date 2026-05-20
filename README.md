@@ -27,6 +27,8 @@ sudo dnf install gtk4-devel libadwaita-devel meson desktop-file-utils pkgconf-de
 
 # Arch
 sudo pacman -S gtk4 libadwaita meson desktop-file-utils pkg-config
+
+
 ```
 
 #### MacOS
@@ -35,6 +37,29 @@ On macos you will need to run this verbatim
 
 ```sh
 brew install gtk4 libadwaita meson desktop-file-utils gtksourceview5
+```
+
+### Docker
+
+(I wasn't able to make it run on ubuntu, so had to dockerize it)
+```bash
+docker build -t hermes-fedora .
+```
+## Run GTK app (X11 forwarding)
+
+On your host machine run:
+
+```bash
+xhost +local:docker
+```
+
+then run:
+
+```bash
+docker run -it --rm \
+  -e DISPLAY=$DISPLAY \
+  -v /tmp/.X11-unix:/tmp/.X11-unix \
+  hermes-fedora
 ```
 
 ## Running the project
